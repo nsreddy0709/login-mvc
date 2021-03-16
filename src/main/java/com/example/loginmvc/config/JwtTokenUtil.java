@@ -11,10 +11,8 @@ import org.springframework.stereotype.Service;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-
 @Service
 public class JwtTokenUtil {
-
     private String secret = "xadmin";
 
     public String extractUsername(String token) {
@@ -62,4 +60,6 @@ public class JwtTokenUtil {
         // here we are validation the username and then check the token is expired or not
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
+
 }
+

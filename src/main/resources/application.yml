@@ -11,4 +11,5 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLMyISAMDialect
-
+server:
+  port: 8081
