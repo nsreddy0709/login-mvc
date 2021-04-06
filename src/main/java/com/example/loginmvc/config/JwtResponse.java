@@ -1,6 +1,7 @@
 package com.example.loginmvc.config;
 
 import java.io.Serializable;
+import java.security.PublicKey;
 
 public class JwtResponse implements Serializable {
     private static final long serialVersionUID = -8091879091924046844L;
@@ -13,5 +14,4 @@ public class JwtResponse implements Serializable {
     public String getToken() {
         return this.jwttoken;
     }
-
 }

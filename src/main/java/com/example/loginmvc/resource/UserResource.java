@@ -1,10 +1,8 @@
 package com.example.loginmvc.resource;
 
 
-import com.example.loginmvc.config.JwtResponse;
-import com.example.loginmvc.config.JwtTokenUtil;
+import com.example.loginmvc.config.*;
 
-import com.example.loginmvc.config.LoginError;
 import com.example.loginmvc.model.*;
 import com.example.loginmvc.repository.*;
 import com.sun.javafx.collections.MappingChange;
@@ -18,13 +16,18 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.security.PublicKey;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
-@Validated
-@RequestMapping(value = "/rest/users")
+@RequestMapping(value = "/v1")
+
+
 public class UserResource {
 
     @Autowired
@@ -45,25 +48,121 @@ public class UserResource {
     @Autowired
     Orders1Repository orders1Repository;
 
-    @GetMapping(value = "/all")
-    public List<Users> getAll() {
-        return usersRepository.findAll();
-    }
+
 
     @PostMapping(value = "/register")
-    public List<Users> persist(@Valid @RequestBody final Users users){
-        usersRepository.save(users);
-        return usersRepository.findAll();
+    public ResponseEntity<?> persist(@RequestBody final Users users){
+        int c = 0;
+        String first_name = users.getFirst_name();
+        if(first_name.length() < 4)
+        {
+            first_name = "please enter valid_name with no less than 3 alphabets";
+            c++;
+        }
+        else {
+            first_name = "";
+        }
+        String last_name = users.getFirst_name();
+        if(last_name.length() < 4)
+        {
+            last_name = "please enter valid_name with no less than 3 alphabets";
+            c++;
+        }
+        else
+        {
+            last_name = "";
+        }
+        String email = users.getEmail();
+        try{
+            Users u = usersRepository.findUsersByEmail(email);
+            System.out.println(u.getEmail());
+            if(u!=null)
+            {
+                email = "User with this emailID already exists";
+                return ResponseEntity.ok(new RegisterError("","",email,"","","",""));
+            }
+        }
+        catch (NullPointerException e)
+        {
+            String regex = "^[A-Za-z0-9+_.-]+@(.+)$";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(email);
+            if(matcher.matches() == false)
+            {
+                email = "Please enter valid emailID";
+                c++;
+                return ResponseEntity.ok(email);
+            }
+            else {
+
+                email = "";
+
+            }
+        }
+
+        String password = users.getPassword();
+
+        String regex1 = "((?=.*[a-z])(?=.*[0-9])(?=.*[A-Z]).{8,})";
+        Pattern pattern1 = Pattern.compile(regex1);
+        Matcher matcher1 = pattern1.matcher(password);
+        System.out.println(matcher1);
+
+        if(matcher1.matches() == false)
+        {
+            password = "Password must contain minimum eight characters, at least one uppercase letter, one lowercase letter and one number";
+            c++;
+        }
+        else {
+            password = "";
+        }
+        String mobile_number = users.getMobile();
+        String regex2 = "(^$|[7-9]{1}[0-9]{9})";
+        Pattern pattern2 = Pattern.compile(regex2);
+        Matcher matcher2 = pattern2.matcher(mobile_number);
+        if(matcher2.matches() == false)
+        {
+            mobile_number = "Mobile number must be a valid 10 digit number";
+            c++;
+        }
+        else {
+            mobile_number = "";
+        }
+        String addess1 = users.getAddress1();
+        if(addess1.length() < 5)
+        {
+            addess1 = "Please enter valid address";
+            c++;
+        }
+        else {
+            addess1 = "";
+        }
+        String address2 = users.getAddress2();
+        if(address2.length()!=0 && address2.length() < 5)
+        {
+            address2 = "Please enter valid address";
+            c++;
+        }
+        else {
+            address2 = "";
+        }
+        if(c == 0)
+        {
+            usersRepository.save(users);
+            return ResponseEntity.ok(new RegisterError(first_name,last_name,"New User",password,mobile_number,addess1,address2));
+        }
+
+
+        return ResponseEntity.ok(new RegisterError(first_name,last_name,email,password,mobile_number,addess1,address2));
+
     }
 
     @GetMapping(value = "/login")
     @ResponseBody
-    public ResponseEntity<?> isValid(@RequestParam Map<String, String> requestparam) {
+    public ResponseEntity<?> isValid(@RequestParam String email,@RequestParam String password) {
         Users u = null;
         Users p = null;
         try{
-            String email = requestparam.get("email");
-            String password = requestparam.get("password");
+
             u = usersRepository.findUsersByEmailAndPassword(email,password);
             //p = usersRepository.findByPassword(password);
             System.out.println(u);
@@ -75,26 +174,35 @@ public class UserResource {
         if(u!=null){
 
             final String token = jwtTokenUtil.generateToken(u.getEmail());
+            //final PublicKey token1 = jwtTokenUtil.getPublicKey();
+            //System.out.println(token1);
+            //byte[] byte_pubkey = token1.getEncoded();
+            //String token4 = Arrays.toString(byte_pubkey);
+            //System.out.println(token4);
             return ResponseEntity.ok(new JwtResponse(token));
         }
-        return ResponseEntity.ok(new JwtResponse("Invalid credential"));
-    }
-    @RequestMapping({ "/hello" })
-    public String hello() {
-        return "Hello JWT";
+        return ResponseEntity.ok(new JwtResponse1("Invalid credential"));
     }
 
+
     @PostMapping(value = "/addtocart")
-    public ResponseEntity<?> persist(@RequestParam String title,String token){
-        String name = jwtTokenUtil.extractUsername(title);
+    public ResponseEntity<?> persist(@RequestBody final AddToCart addToCart ){
+        String title = addToCart.getTitle();
+        String name = addToCart.getToken();
+        name = jwtTokenUtil.extractUsername(name);
         System.out.println(name);
-        System.out.println(token);
+        List<String> list = Arrays.asList(new String[]{"Already added to cart"});
+
+        System.out.println(title);
         Users users = null;
+
+
         Products product = productsRepository.findProductsByPtitle(title);
         System.out.println(product);
         System.out.println(name);
         users = usersRepository.findUsersByEmail(name);
         System.out.println(users);
+
 
         Cart cart1 = cartRepository.findCartByUidAndPid(users.getUser_id(),product.getProduct_id());
 
@@ -117,66 +225,76 @@ public class UserResource {
             cartRepository.save(cart);
 
 
-            return ResponseEntity.ok("Succesfully added to cart");
+            return ResponseEntity.ok("Successfully added to cart");
         }
     }
 
-    @GetMapping(value = "/getcartdetails")
-    public List<Cart> getCart(@RequestBody String token)
+    @PostMapping(value = "/getcartdetails")
+    public List<Cart> getCart(@RequestBody GetCart getCart)
     {
-        String name = jwtTokenUtil.extractUsername(token);
+        String name = jwtTokenUtil.extractUsername(getCart.getToken());
         Users users = usersRepository.findUsersByEmail(name);
         return cartRepository.findCartByUid(users.getUser_id());
     }
 
-    @PutMapping(value = "/updateqyt")
-    public List<Cart> update(@RequestParam Integer qty, String email, String name)
+    @PostMapping(value = "/updateqyt")
+    public List<Cart> update(@RequestBody UpdateQty updateQty)
     {
-        name = jwtTokenUtil.extractUsername(name);
+        String email = jwtTokenUtil.extractUsername(updateQty.getToken());
         Users users = usersRepository.findUsersByEmail(email);
-        System.out.println(users);
-        Products product = productsRepository.findProductsByPtitle(name);
+
+        Products product = productsRepository.findProductsByPtitle(updateQty.getTitle());
         System.out.println(product);
         Cart cart = cartRepository.findCartByUidAndPid(users.getUser_id(),product.getProduct_id());
-        System.out.println(cart);
+
+        int qty=updateQty.getQty();
         cart.setQty(qty);
-        cart.setAmount(qty * cart.getAmount());
+        cart.setAmount(qty * cart.getPrice());
         cartRepository.save(cart);
         return cartRepository.findCartByUid(users.getUser_id());
     }
-    @GetMapping(value = "/getamount")
-    public Integer toalAmount(@RequestParam String email)
+    @PostMapping(value = "/getamount")
+    public Integer toalAmount(@RequestBody GetAmount th)
     {
-        String name = jwtTokenUtil.extractUsername(email);
+        String name = jwtTokenUtil.extractUsername(th.getToken());
         Users users = usersRepository.findUsersByEmail(name);
-        List<Orders> orders = ordersRepository.findOrdersByUid(users.getUser_id());
+        List<Cart> carts = cartRepository.findCartByUid(users.getUser_id());
         int sum = 0;
-        for (Orders o:
-                orders) {
-            sum = sum + o.getPrice();
+        for (Cart c:
+                carts) {
+            sum = sum + c.getAmount();
         }
 
         return sum;
     }
 
-    @DeleteMapping(value = "/deletecart")
-    public List<Cart> delete(@RequestParam String name, String email){
+    @PostMapping(value = "/deletecart")
+    public ResponseEntity delete(@RequestBody AddToCart addToCart){
+
+        String email = jwtTokenUtil.extractUsername(addToCart.getToken());
         Users users = usersRepository.findUsersByEmail(email);
-        Products product = productsRepository.findProductsByPtitle(name);
+        Products product = productsRepository.findProductsByPtitle(addToCart.getTitle());
         cartRepository.deleteCartByUidAndPid(users.getUser_id(),product.getProduct_id());
-        return cartRepository.findCartByUid(users.getUser_id());
+        return ResponseEntity.ok(new LoginError("Cart deleted succesfully"));
+
+
+
+
+
     }
 
-    @DeleteMapping
-    public void deletecarts(@RequestParam String email){
-        Users users = usersRepository.findUsersByEmail(email);
-        cartRepository.deleteCartByUid(users.getUser_id());
-    }
+    //@DeleteMapping
+    //public void deletecarts(@RequestParam String email){
+    //  Users users = usersRepository.findUsersByEmail(email);
+    //cartRepository.deleteCartByUid(users.getUser_id());
+    //}
 
     @PostMapping(value = "/checkout")
-    public List<Orders> checkout(@RequestParam String email ){
+    public List<Orders> checkout(@RequestBody GetCart getCart ){
+        String email = jwtTokenUtil.extractUsername(getCart.getToken());
         Users users = usersRepository.findUsersByEmail(email);
         List<Cart> cart = cartRepository.findCartByUid(users.getUser_id());
+        System.out.println(cart);
         for (Cart c:
                 cart) {
             Orders orders = new Orders();
@@ -186,16 +304,10 @@ public class UserResource {
             orders.setPrice(c.getAmount());
             orders.setQty(c.getQty());
             ordersRepository.save(orders);
-            Orders1 orders1 = new Orders1();
-            orders1.setUid(c.getUid());
-            orders1.setPid(c.getPid());
-            orders1.setPname(c.getTitle());
-            orders1.setPrice(c.getAmount());
-            orders1.setQty(c.getQty());
-            orders1Repository.save(orders1);
         }
         return ordersRepository.findOrdersByUid(users.getUser_id());
     }
+
 
 
 }

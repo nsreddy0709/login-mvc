@@ -8,6 +8,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.BeanIds;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -45,7 +46,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.csrf().disable().authorizeRequests().antMatchers("/rest/users/login").permitAll().antMatchers("/rest/users/register").permitAll().anyRequest().authenticated().and().exceptionHandling().and().sessionManagement()
+        http.csrf().disable().authorizeRequests().antMatchers("/v1/login").permitAll().antMatchers("/v1/register").permitAll().antMatchers("/swagger-ui.html").permitAll().antMatchers("/v2/api-docs").permitAll().anyRequest().authenticated().and().exceptionHandling().and().sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         ;;
@@ -54,6 +55,23 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
 
     }
+
+    @Override
+    public void configure(WebSecurity web) throws Exception {
+        // Allow swagger to be accessed without authentication
+        web.ignoring().antMatchers("/v2/api-docs")//
+                .antMatchers("/swagger-resources/**")//
+                .antMatchers("/swagger-ui.html")//
+                .antMatchers("/configuration/**")//
+                .antMatchers("/webjars/**")//
+                .antMatchers("/public")
+
+                // Un-secure H2 Database (for testing purposes, H2 console shouldn't be unprotected in production)
+                .and()
+                .ignoring()
+                .antMatchers("/h2-console/**/**");;
+    }
+
 
 
 
